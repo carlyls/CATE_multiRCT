@@ -1,0 +1,17 @@
+"0","#overall average MSE across all combinations
+means_long %>%
+  group_by(Method, ensemble, base) %>%
+  summarise(MSE=mean(MSE)) %>%
+  ggplot(aes(x=Method, y=MSE, fill=ensemble)) +
+  geom_bar(stat=""identity"") +
+  theme(axis.text.x = element_text(angle=90)) +
+  scale_x_discrete(labels = c(""X - Complete Pool"", ""S - Complete Pool"", ""CF - Complete Pool"", 
+                              ""X - Indicator"", ""S - Indicator"", ""CF - Indicator"",
+                              ""X - Tree"", ""S - Tree"", ""CF - Tree"",
+                              ""X - Forest"", ""S - Forest"", ""CF - Forest"", 
+                              ""X - Lasso"", ""S - Lasso"", ""CF - Lasso"", ""Meta-Analysis"")) +
+  labs(fill = ""Ensemble"") +
+  ggtitle(""MSEs Averaged Across All Parameter Combinations"")
+"
+"2","`summarise()` has grouped output by 'Method', 'ensemble'. You can override using the `.groups` argument.
+"

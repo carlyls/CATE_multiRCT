@@ -1,0 +1,425 @@
+---
+title: 'Simulation Results: August 9, 2022'
+author: "Carly Lupton-Smith"
+date: '2022-08-01'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Combining Simulation Results
+
+```{r}
+library(tidyverse)
+
+read_files <- function (dir) {
+  setwd(dir)
+  files <- list.files(pattern="_output_")
+  
+  mylist <- lapply(files, function(x) {
+    load(file = x)
+    get(ls()[ls()!= "filename"])
+  })
+  
+  all <- do.call("bind_rows", mylist)
+  return(all)
+}
+
+#load in files
+all <- read_files("~/Desktop/Cluster/29JulResults_Scenarios") #this is everything except a few of the scenario 3 iterations
+#View(all)
+
+fixed <- readRDS("~/Desktop/Cluster/29JulResults_Scenarios_Fixed/sim_output_sc13early.Rdata") #remaining scenario 3 iterations from the "29JulResults_Scenarios_Fixed" folder where I fixed the seed
+
+
+all <- bind_rows(all, fixed)
+
+nrow(all) #to make sure every iteration ran
+nrow(all %>% select(-iteration) %>% distinct()) 
+length(unique(all$seed)) #to make sure there are no duplicates
+
+#checking number of iterations
+sum(all$scenario==3, na.rm=T)
+sum(all$lin==T, na.rm=T)
+sum(all$lin==F, na.rm=T)
+
+all <- all %>%
+  filter(is.na(scenario)==T | scenario==3) %>%
+  mutate(scenario = ifelse(is.na(scenario)==F, "2",
+                           ifelse(lin==T, "1a", "1b")),
+         scenario = factor(scenario, levels=c("1a","1b","2")),
+         sc_combo = paste(scenario, study_sd, study_inter_sd, sep="_"),
+         sc_combo = factor(sc_combo)) %>%
+  select(-c(lin, study_mean, study_inter_mean))
+
+table(all$sc_combo)
+```
+
+```{r}
+#set up settings
+settings<-expand.grid(K=c(10),
+                      n_mean=c(500),
+                      n_sd=c(0),
+                      study_sds=c("0.5,0", "1,0", "1,0.5", 
+                                  "1,1", "3,1"),
+                      scenario=c("1a","1b")) %>%
+  separate(study_sds, into=c("study_sd", "study_inter_sd"), sep=",") %>%
+  mutate(study_sd = as.numeric(study_sd),
+         study_inter_sd = as.numeric(study_inter_sd),
+         scenario = factor(scenario, levels=c("1a","1b","2"))) %>%
+  rbind(c(K=10, n_mean=500, n_sd=0, study_sd=NA, study_inter_sd=NA, scenario=2)) %>%
+  mutate(best_col = NA, num_iter = NA)
+
+#make columns for mses
+for (i in 1:16) {
+  settings <- mutate(settings,
+                     name = "NA")
+  colnames(settings)[length(colnames(settings))] <- colnames(all)[i]
+}
+
+#add results in
+mean_mses <- sd_mses <- settings
+for (i in 1:nrow(mean_mses)) {
+  
+  if (mean_mses$scenario[i] %in% c("1a","1b")) {
+    sim_subset <- filter(all, K==mean_mses$K[i], n_mean==mean_mses$n_mean[i], n_sd==mean_mses$n_sd[i],
+                       study_sd==mean_mses$study_sd[i], study_inter_sd==mean_mses$study_inter_sd[i],
+                       scenario==mean_mses$scenario[i]) %>% select(1:16)
+  } else {
+    sim_subset <- filter(all, K==mean_mses$K[i], n_mean==mean_mses$n_mean[i], n_sd==mean_mses$n_sd[i],
+                       scenario==mean_mses$scenario[i]) %>% select(1:16)
+  }
+  
+  col_means <- colMeans(sim_subset)
+  col_sds <- apply(sim_subset,2,sd)
+  mean_mses[i,"best_col"] <- sd_mses[i,"best_col"] <- names(which.min(col_means))
+  mean_mses[i,"num_iter"] <- sd_mses[i,"num_iter"] <- nrow(sim_subset)
+  
+  mean_mses[i, grep("x_nostudy",colnames(mean_mses)):ncol(mean_mses)] <- round(col_means,4)
+  sd_mses[i, grep("x_nostudy",colnames(mean_mses)):ncol(mean_mses)] <- paste(round(col_means,2), " (", 
+                                                                            round(col_sds,2), ")", sep="")
+}
+```
+
+```{r}
+#make long data for plotting
+means_long <- mean_mses %>%
+  pivot_longer(cols=x_nostudy:ma,
+               names_to="Method",
+               values_to="MSE") %>%
+  mutate(MSE = as.numeric(MSE),
+         Method = factor(Method, levels=c("x_nostudy","s_nostudy","causal_nostudy",
+                                          "x_studyind","s_studyind","causal_studyind",
+                                          "x_tree","s_tree","causal_tree",
+                                          "x_forest","s_forest","causal_forest",
+                                          "x_lasso","s_lasso","causal_lasso","ma")),
+         base = case_when(grepl("x_",Method)==T ~ "Xlearner",
+                          grepl("s_",Method)==T ~ "Slearner",
+                          grepl("causal_",Method)==T ~ "Causal Forest",
+                          grepl("ma",Method)==T ~ "Meta-Analysis"),
+         ensemble = case_when(grepl("nostudy",Method)==T ~ "Complete Pooling",
+                              grepl("studyind",Method)==T ~ "Trial Indicator",
+                              grepl("tree", Method)==T ~ "Ensemble Tree",
+                              grepl("forest",Method)==T ~ "Ensemble Forest",
+                              grepl("lasso",Method)==T ~ "Ensemble Lasso",
+                              grepl("ma",Method)==T ~ "Meta-Analysis"),
+         base = factor(base, levels=c("Xlearner", "Slearner", "Causal Forest", "Meta-Analysis")), 
+         ensemble = factor(ensemble, levels=c("Complete Pooling", "Trial Indicator", "Ensemble Tree",
+                                              "Ensemble Forest","Ensemble Lasso", "Meta-Analysis")),
+         sds = paste(study_sd, study_inter_sd, sep=", "), sds = factor(sds),
+         ns = paste(n_mean, n_sd, sep=", "),
+         sc_combo = paste(scenario, study_sd, study_inter_sd, sep="_"),
+         sc_combo = factor(sc_combo))
+```
+
+## Plots
+
+```{r}
+#fig1 option 1
+means_long %>%
+  ggplot(aes(x=sds, y=MSE, group=Method, color=ensemble)) +
+  geom_point(aes(shape=base), size=2) +
+  #geom_line() +
+  facet_wrap(~scenario) +
+  #scale_x_discrete(labels = c("Option 1","Option 2", "Option 3", "Option 4", "Option 5")) +
+  xlab("SD of Study Main and Study Interaction Coefficients") +
+  ggtitle("MSE Based on Variability of Study Coefficients")
+
+#fig2
+# means_long %>%
+#   filter(scenario == "2") %>%
+#   ggplot(aes(x=sds, y=MSE, group=Method, color=ensemble)) +
+#   geom_point(aes(shape=base), size=2) +
+#   #geom_line() +
+#   facet_wrap(~scenario) +
+#   scale_x_discrete(labels = c("")) +
+#   xlab("") +
+#   ggtitle("MSE for Scenario 2")
+
+## FIGURE 1
+means_long %>%
+  rename(Ensemble = ensemble, Base = base) %>%
+  filter(scenario %in% c("1a","1b")) %>%
+  ggplot(aes(x=sds, y=MSE, group=Method, color=Ensemble)) +
+  geom_point(aes(shape=Base), size=2) +
+  #geom_line() +
+  facet_wrap(~scenario) +
+  scale_x_discrete(labels = c("Low-Low","Med-Low", "Med-Med", "Med-High","High-High")) +
+  scale_y_continuous(limits = c(0, 2.1)) +
+  #theme(axis.text.x = element_text(angle = 45)) +
+  xlab("SD of Study Main and Study Interaction Coefficients")
+
+#with jitter
+means_long %>%
+  rename(Ensemble = ensemble, Base = base) %>%
+  filter(scenario %in% c("1a","1b")) %>%
+  ggplot(aes(x=sds, y=MSE, group=Method, color=Ensemble)) +
+  geom_jitter(aes(shape=Base), size=3, width=.2, height=0) +
+  #geom_line() +
+  facet_wrap(~scenario) +
+  scale_x_discrete(labels = c("Low-Low","Med-Low", "Med-Med", "Med-High","High-High")) +
+  scale_y_continuous(limits = c(0, 2.1)) +
+  #theme(axis.text.x = element_text(angle = 45)) +
+  xlab("SD of Study Main and Study Interaction Coefficients")
+
+## FIGURE 2
+means_long %>%
+  rename(Ensemble = ensemble, Base = base) %>%
+  filter(scenario=="2") %>%
+  ggplot(aes(x=sds, y=MSE, group=Method, color=Ensemble)) +
+  geom_point(aes(shape=Base), size=2) +
+  #geom_line() +
+  facet_wrap(~scenario) +
+  scale_x_discrete(labels = c("Scenario 2")) +
+  #theme(axis.text.x = element_text(angle = 45)) +
+  xlab("")
+
+#other option: combining fig 1 and 2
+means_long %>%
+  rename(Ensemble = ensemble, Base = base) %>%
+  mutate(scenario = ifelse(scenario=="1a", "Piecewise Linear CATE",
+                           ifelse(scenario=="1b", "Non-linear CATE",
+                                  "Variable CATE")),
+         scenario = factor(scenario, levels=c("Piecewise Linear CATE",
+                                              "Non-linear CATE",
+                                              "Variable CATE"))) %>%
+  ggplot(aes(x=sds, y=MSE, group=Method, color=Ensemble)) +
+  geom_jitter(aes(shape=Base), size=2.5, width=.2, height=0) +
+  #geom_line() +
+  facet_wrap(~scenario, scales='free') +
+  scale_x_discrete(labels = c("Low-Low","Med-Low", "Med-Med", "Med-High","High-High")) +
+  scale_y_continuous(limits = c(0, 2.1)) +
+  labs(shape="Single-Study Method", color="Aggregation Method") +
+  guides(shape=guide_legend(order=1), color=guide_legend(order=2)) +
+  #theme(axis.text.x = element_text(angle = 45)) +
+  xlab("SD of Study Main and Study Interaction Coefficients") +
+  theme(text = element_text(size=12))
+```
+
+```{r}
+#overall average MSE across all combinations
+means_long %>%
+  group_by(Method, ensemble, base) %>%
+  summarise(MSE=mean(MSE)) %>%
+  ggplot(aes(x=Method, y=MSE, fill=ensemble)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1),
+        plot.margin=margin(6,6,60),
+        text = element_text(size=15)) +
+  scale_x_discrete(labels = c("X - Complete Pool", "S - Complete Pool", "CF - Complete Pool", 
+                              "X - Indicator", "S - Indicator", "CF - Indicator",
+                              "X - Tree", "S - Tree", "CF - Tree",
+                              "X - Forest", "S - Forest", "CF - Forest", 
+                              "X - Lasso", "S - Lasso", "CF - Lasso", "Meta-Analysis")) +
+  labs(fill = "Aggregation Approach")
+
+#other plot options
+means_long %>%
+  group_by(Method, ensemble, base) %>%
+  summarise(MSE=mean(MSE)) %>%
+  ggplot(aes(x=ensemble, y=MSE, group=1, color=base)) +
+  geom_point(size=5) +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1),
+        plot.margin=margin(10,10,10,30),
+        text = element_text(size=15)) +
+  labs(color="Single-Study Approach") +
+  xlab("Aggregation Approach")
+ggsave("MLSims_All_6Jan2023.jpeg",width=8,height=5,units="in")
+
+means_long %>%
+  group_by(Method, ensemble, base) %>%
+  summarise(MSE=mean(MSE)) %>%
+  ggplot(aes(x=ensemble, y=MSE,group=base, fill=base)) +
+  geom_bar(stat="identity",position="dodge") +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1),
+        plot.margin=margin(10,10,10,30),
+        text = element_text(size=15)) +
+  labs(fill="Single-Study Approach") +
+  xlab("Aggregation Approach")
+
+#for liz slides
+means_long %>%
+  filter(base=="Causal Forest" | base=="Meta-Analysis") %>%
+  mutate(ensemble = varhandle::unfactor(ensemble),
+         ensemble = ifelse(ensemble == "Trial Indicator",
+                           "Pooling with Trial Indicator", ensemble),
+         ensemble = factor(ensemble, levels=c("Complete Pooling", "Pooling with Trial Indicator","Ensemble Tree","Ensemble Forest","Ensemble Lasso","Meta-Analysis"))) %>%
+  group_by(ensemble) %>%
+  summarise(MSE = mean(MSE)) %>%
+  ggplot(aes(x=ensemble, y=MSE, fill=ensemble)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1),
+        plot.margin=margin(10,10,10,30),
+        text = element_text(size=15),
+        legend.position = "none") +
+  labs(fill="Aggregation Approach",
+       title = "Average MSE of CATE Estimates by Aggregation Approach",
+        subtitle = "For Methods using a Causal Forest") +
+  xlab("Aggregation Approach")
+```
+
+```{r}
+#boxplots
+all_long <- all %>%
+  pivot_longer(cols=x_nostudy:ma,
+               names_to="Method",
+               values_to="MSE") %>%
+  filter(scenario != 1) %>%
+  mutate(MSE = as.numeric(MSE),
+         Method = factor(Method, levels=c("x_nostudy","s_nostudy","causal_nostudy",
+                                          "x_studyind","s_studyind","causal_studyind",
+                                          "x_tree","s_tree","causal_tree",
+                                          "x_forest","s_forest","causal_forest",
+                                          "x_lasso","s_lasso","causal_lasso","ma")),
+         base = case_when(grepl("x_",Method)==T ~ "Xlearner",
+                          grepl("s_",Method)==T ~ "Slearner",
+                          grepl("causal_",Method)==T ~ "Causal Forest",
+                          grepl("ma",Method)==T ~ "Meta-Analysis"),
+         ensemble = case_when(grepl("nostudy",Method)==T ~ "Complete Pooling",
+                              grepl("studyind",Method)==T ~ "Trial Indicator",
+                              grepl("tree", Method)==T ~ "Ensemble Tree",
+                              grepl("forest",Method)==T ~ "Ensemble Forest",
+                              grepl("lasso",Method)==T ~ "Ensemble Lasso",
+                              grepl("ma",Method)==T ~ "Meta-Analysis"),
+         base = factor(base, levels=c("Xlearner", "Slearner", "Causal Forest")), 
+         ensemble = factor(ensemble, levels=c("Complete Pooling", "Trial Indicator", "Ensemble Tree", 
+                                              "Ensemble Forest","Ensemble Lasso", "Meta-Analysis")),
+         sds = paste(study_sd, study_inter_sd, sep=", "), sds = factor(sds),
+         ns = paste(n_mean, n_sd, sep=", "))
+
+#all methods, all scenarios
+# all_long %>%
+#   ggplot(aes(x=Method, y=MSE, group=Method, color=ensemble)) +
+#   geom_boxplot() +
+#   facet_grid(scenario~sds) +
+#   theme(axis.text.x = element_text(angle=90))
+
+#all methods, scenario 2
+# all_long %>%
+#   filter(scenario %in% c("2a", "2b"), sds != "3, 1") %>%
+#   ggplot(aes(x=Method, y=MSE, group=Method, color=ensemble)) +
+#   geom_boxplot() +
+#   facet_grid(scenario~sds) +
+#   theme(axis.text.x = element_text(angle=90))
+
+#all methods, scenario 1
+# all_long %>%
+#   filter(scenario=="1") %>%
+#   ggplot(aes(x=Method, y=MSE, group=Method, color=ensemble)) +
+#   geom_boxplot() +
+#   theme(axis.text.x = element_text(angle=90))
+
+#all methods, scenario 3 (now called scenario 2)
+all_long %>%
+  rename(Ensemble = ensemble) %>%
+  filter(scenario==2) %>%
+  ggplot(aes(x=Method, y=MSE, group=Method, color=Ensemble)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle=90)) +
+  scale_x_discrete(labels = c("X - Complete Pool", "S - Complete Pool", "CF - Complete Pool", 
+                              "X - Indicator", "S - Indicator", "CF - Indicator",
+                              "X - Tree", "S - Tree", "CF - Tree",
+                              "X - Forest", "S - Forest", "CF - Forest", 
+                              "X - Lasso", "S - Lasso", "CF - Lasso", "Meta-Analysis")) +
+  ggtitle("Boxplot of MSEs Across All Iterations for Scenario 2")
+```
+
+```{r}
+## anova
+mod_params <- lm(MSE ~ factor(base) + factor(ensemble) + factor(study_sd) + 
+                   factor(study_inter_sd) + factor(scenario) +
+                   factor(base)*factor(ensemble), 
+                 data=filter(means_long, base != "Meta-Analysis", scenario != 2))
+summary(mod_params)
+anova(mod_params)
+
+anov <- aov(MSE ~ factor(base) + factor(ensemble) + factor(study_sd) + 
+                   factor(study_inter_sd) + factor(scenario) +
+                   factor(base)*factor(ensemble), 
+                 data=filter(means_long, base != "Meta-Analysis", scenario != 2))
+
+TukeyHSD(anov, 'factor(base)', conf.level=0.95)
+TukeyHSD(anov, 'factor(ensemble)', conf.level=0.95)
+TukeyHSD(anov, 'factor(study_sd)', conf.level=0.95)
+TukeyHSD(anov, 'factor(study_inter_sd)', conf.level=0.95)
+TukeyHSD(anov, 'factor(base):factor(ensemble)', conf.level=0.95)
+```
+
+```{r}
+library(effects)
+allEffects(mod_params)
+```
+
+```{r}
+## other anova
+# mod_params_sc <- lm(MSE ~ factor(base) + factor(ensemble) +
+#                    factor(sc_combo) + factor(base)*factor(ensemble), 
+#                  data=filter(means_long, base != "Meta-Analysis"))
+# summary(mod_params_sc)
+```
+
+
+## Table
+
+```{r}
+#results table
+tab <- sd_mses %>%
+  mutate(sc_combo = paste(scenario, study_sd, study_inter_sd, sep="_"),
+         sc_combo = factor(sc_combo)) %>%
+  select(-c(K,n_mean,n_sd,study_sd,study_inter_sd,scenario,best_col,num_iter)) %>%
+  t()
+tab <- tab[1:16,]
+colnames(tab) <- c("Low-Low","Medium-Low","Medium-Medium",
+                   "Medium-High","High-High","Low-Low",
+                   "Medium-Low","Medium-Medium","Medium-High",
+                   "High-High","")
+rownames(tab) <- c("X Learner - \n Complete Pool", "X Learner - \n Indicator", "X Learner - \n Tree",
+                   "X Learner - \n Forest", "X Learner - \n Lasso", "Causal Forest - \n Complete Pool", 
+                   "Causal Forest - \n Indicator", "Causal Forest - \n Tree", "Causal Forest - \n Forest", 
+                   "Causal Forest - \n Lasso", "S Learner - \n Complete Pool", "S Learner - \n Indicator", 
+                   "S Learner - \n Tree", "S Learner - \n Forest", "S Learner - \n Lasso", "Meta-Analysis")
+
+#print(tab)
+
+for (j in 1:nrow(tab)) {
+  res <- rownames(tab)[j]
+  for (i in 1:ncol(tab)) {
+    res <- paste(res, tab[j,i], sep=" & ")
+  }
+  print(res)
+}
+
+# library(knitr)
+# library(kableExtra)
+# kable(tab,"html") %>%
+#   column_spec(1:11, border_right = T) %>%
+#   column_spec(12, width = "30em") %>%
+#   add_header_above(c("","Scenario 1a"=5, "Scenario 1b"=5, "Scenario 2"=1)) %>%
+#   kable_styling()
+```
+
+
