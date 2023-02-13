@@ -174,7 +174,9 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   
   ### meta-analysis ###
   
-  mixed_mod <- lmer(Y ~ W*X1 + W*X2 + W*X3 + W*X4 + W*X5 + (1|S), data=sim_dat) #naive
+  #mixed_mod <- lmer(Y ~ W*X1 + W*X2 + W*X3 + W*X4 + W*X5 + (1|S), data=sim_dat) #naive
+  mixed_mod <- lmer(Y ~ W + X1 + X2 + X3 + X4 + W:X1 +
+                       (1 + W + X1 + W:X1|S), data=sim_dat)
   sim_dat_trt <- mutate(sim_dat, W=1)
   sim_dat_cntrl <- mutate(sim_dat, W=0)
   cate_ma <- predict(mixed_mod, sim_dat_trt) - predict(mixed_mod, sim_dat_cntrl)
@@ -187,5 +189,7 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   
   return(mses)
 }
+
+
 
 

@@ -1,5 +1,0 @@
-"0","## other anova"
-"0","# mod_params_sc <- lm(MSE ~ factor(base) + factor(ensemble) +"
-"0","#                    factor(sc_combo) + factor(base)*factor(ensemble), "
-"0","#                  data=filter(means_long, base != ""Meta-Analysis""))"
-"0","# summary(mod_params_sc)"
