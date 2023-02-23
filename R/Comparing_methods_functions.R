@@ -144,8 +144,8 @@ tan_preds <- function(K, sim_dat, covars, method, honesty=F) {
   
   #ensemble forest
   ef_fit <- EnsemForestAll(aug_data, "Model_Site", covars)
-  tan_pred_tau_ef <- predict(ef_fit,sim_dat_mod,num.threads=3)$predictions
-  #tan_pred_tau_ef <- ef_fit$predictions[which(aug_data$S == aug_data$Model_Site)] #OOB
+  #tan_pred_tau_ef <- predict(ef_fit,sim_dat_mod,num.threads=3)$predictions
+  tan_pred_tau_ef <- ef_fit$predictions[which(aug_data$S == aug_data$Model_Site)] #OOB
   mse_forest <- mean((tan_pred_tau_ef - sim_dat$tau)^2)
   
   rm(list = c("ef_fit", "tan_pred_tau_ef"))
