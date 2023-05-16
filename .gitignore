@@ -1,3 +1,8 @@
+.Rhistory
+.Rproj.user
+.DS_Store
+.RData
+ML_CLS.Rproj
 Individual_vignettes
 Literature
 Old versions
@@ -5,8 +10,3 @@ Plots
 Presentations
 Papers
 Notes
-.Rhistory
-.Rproj.user
-.DS_Store
-.RData
-ML_CLS.Rproj
