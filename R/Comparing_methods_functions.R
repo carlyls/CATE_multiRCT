@@ -98,7 +98,7 @@ CausalForest_aug <- function(K, sim_dat, covars, honesty) {
     #apply model to all data
     #first get OOB predictions from same site (training data)
     df_mod1 <- df %>%
-      mutate(tau_pred = predict(fit)$predictions,
+      mutate(tau_pred = c(fit$predictions),
              Model_Site = k)
     #then predict on rest of the sites (testing data)
     other_dat <- filter(sim_dat, S!=k)
@@ -155,6 +155,10 @@ tan_preds <- function(K, sim_dat, covars, method, honesty=F) {
   mse_lasso <- mean((pred_tau_lasso - sim_dat$tau)^2)
   
   rm(pred_tau_lasso)
+  
+  #single-study no ensembling
+  ss_pred <- aug_data[which(aug_data$S == aug_data$Model_Site),"tau_pred"]
+  mse_ss <- mean((ss_pred - sim_dat$tau)^2)
   
   return(c(mse_tree=mse_tree, mse_forest=mse_forest, mse_lasso=mse_lasso))
 }

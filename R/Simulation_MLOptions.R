@@ -101,14 +101,14 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   
   #no study
   tau_forest_nostudy <- causal_forest(X=feat_nostudy, Y=y, W=tr, num.threads=3, honesty=honesty, num.trees=1000)
-  tau_hat_nostudy <- predict(tau_forest_nostudy)$predictions
+  tau_hat_nostudy <- c(tau_forest_nostudy$predictions)
   causal_nostudy <- mean((tau_hat_nostudy - tau_true)^2)
   
   rm(list = c("tau_forest_nostudy", "tau_hat_nostudy"))
   
   #study indicator
   tau_forest <- causal_forest(X=feat, Y=y, W=tr, num.threads=3, honesty=honesty, num.trees=1000)
-  tau_hat <- predict(tau_forest)$predictions
+  tau_hat <- c(tau_forest$predictions)
   causal_studyind <- mean((tau_hat - tau_true)^2)
   
   rm(list = c("tau_forest", "tau_hat"))

@@ -28,7 +28,7 @@ read_files <- function (dir) {
 }
 
 #load in files
-all <- read_files("~/Desktop/Cluster/14FebResults")
+all <- read_files("~/Desktop/Cluster/MLSims/14FebResults")
 
 nrow(all) #to make sure every iteration ran
 nrow(all %>% select(-iteration) %>% distinct()) 
@@ -148,6 +148,42 @@ means_long %>%
   xlab("SD of Study Main and Study Interaction Coefficients") +
   theme(text = element_text(size=12))
 ggsave("Plots/MLSims_Fig1_14Feb2023.jpeg",width=14,height=5,units="in")
+```
+
+```{r}
+#Figure 1 boxplot option
+all_long <- all %>%
+  pivot_longer(cols=x_nostudy:ma,
+               names_to="Method",
+               values_to="MSE") %>%
+  mutate(MSE = as.numeric(MSE),
+         Base = case_when(grepl("x_",Method)==T ~ "X-Learner",
+                          grepl("s_",Method)==T ~ "S-Learner",
+                          grepl("causal_",Method)==T ~ "Causal Forest",
+                          grepl("ma",Method)==T ~ "Meta-Analysis"),
+         Ensemble = case_when(grepl("nostudy",Method)==T ~ "Complete Pooling",
+                              grepl("studyind",Method)==T ~ "Trial Indicator",
+                              grepl("tree", Method)==T ~ "Ensemble Tree",
+                              grepl("forest",Method)==T ~ "Ensemble Forest",
+                              grepl("lasso",Method)==T ~ "Ensemble Lasso",
+                              grepl("ma",Method)==T ~ "Meta-Analysis"),
+         Base = factor(Base, levels=c("S-Learner", "X-Learner", "Causal Forest", "Meta-Analysis")), 
+         Ensemble = factor(Ensemble, levels=c("Complete Pooling", "Trial Indicator", "Ensemble Tree",
+                                              "Ensemble Forest","Ensemble Lasso", "Meta-Analysis")),
+         sds = paste(study_sd, study_inter_sd, sep=", "), sds = factor(sds))
+all_long %>%
+  mutate(scenario = ifelse(scenario=="1a", "Piecewise Linear CATE",
+                           ifelse(scenario=="1b", "Non-linear CATE",
+                                  "Variable CATE")),
+         scenario = factor(scenario, levels=c("Piecewise Linear CATE",
+                                              "Non-linear CATE",
+                                              "Variable CATE"))) %>%
+  filter(scenario != "Variable CATE", Ensemble != "Complete Pooling",
+         sds != "3, 1") %>%
+  ggplot(aes(x=Ensemble, y=MSE)) +
+  geom_boxplot(aes(color=Base)) + 
+  facet_grid(scenario~sds) +
+  theme(axis.text.x = element_text(angle=90))
 ```
 
 ```{r}
