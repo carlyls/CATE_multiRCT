@@ -118,6 +118,7 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   causal_tree <- causal_tan["mse_tree"]
   causal_forest <- causal_tan["mse_forest"]
   causal_lasso <- causal_tan["mse_lasso"]
+  causal_ss <- causal_tan["mse_ss"]
   
   rm(list = c("causal_tan"))
   
@@ -143,6 +144,7 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   x_tree <- x_tan["mse_tree"]
   x_forest <- x_tan["mse_forest"]
   x_lasso <- x_tan["mse_lasso"]
+  x_ss <- x_tan["mse_ss"]
   
   rm(list = c("x_tan"))
   
@@ -168,6 +170,7 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   s_tree <- s_tan["mse_tree"]
   s_forest <- s_tan["mse_forest"]
   s_lasso <- s_tan["mse_lasso"]
+  s_ss <- s_tan["mse_ss"]
   
   rm(list = c("s_tan"))
   
@@ -183,9 +186,9 @@ compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
   ma <- mean((cate_ma - tau_true)^2)
   
   
-  mses <- data.frame(x_nostudy, x_studyind, x_tree, x_forest, x_lasso,
-                     causal_nostudy, causal_studyind, causal_tree, causal_forest, causal_lasso,
-                     s_nostudy, s_studyind, s_tree, s_forest, s_lasso, ma)
+  mses <- data.frame(x_nostudy, x_studyind, x_tree, x_forest, x_lasso, x_ss,
+                     causal_nostudy, causal_studyind, causal_tree, causal_forest, causal_lasso, causal_ss,
+                     s_nostudy, s_studyind, s_tree, s_forest, s_lasso, s_ss, ma)
   
   return(mses)
 }

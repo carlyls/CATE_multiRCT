@@ -13,18 +13,28 @@ library(lme4)
 
 #settings matrix with all the parameters that vary in each parallel run
 settings_ind <- expand.grid(K=c(10),
-                      n_mean=c(500),
-                      n_sd=c(0),
-                      study_mean=c(0),
-                      study_inter_mean=c(0),
+                      ns=c("same","one large","half and half"),
+                      cov_shift=c("no"),
                       study_sds=c("0.5,0", "1,0", "1,0.5", 
-                                  "1,1", "3,1"),
+                                  "1,1"),
                       scenario=c("1a","1b")) %>%
   separate(study_sds, into=c("study_sd", "study_inter_sd"), sep=",") %>%
   mutate(study_sd = as.numeric(study_sd),
          study_inter_sd = as.numeric(study_inter_sd),
+         cov_shift = factor(cov_shift, levels=c("no","yes")),
          scenario = factor(scenario, levels=c("1a","1b","2"))) %>%
-  rbind(c(K=10, n_mean=500, n_sd=0, study_mean=0, study_inter_mean=0, study_sd=NA, study_inter_sd=NA, scenario=2))
+  rbind(c(K=10, ns="same", cov_shift="no", study_sd=3, study_inter_sd=1, scenario="1a"),
+        c(K=10, ns="same", cov_shift="no", study_sd=3, study_inter_sd=1, scenario="1b"),
+        c(K=10, ns="same", cov_shift="no", study_sd=NA, study_inter_sd=NA, scenario="2"),
+        c(K=10, ns="same", cov_shift="yes", study_sd=0.5, study_inter_sd=0, scenario="1a"),
+        c(K=10, ns="one large", cov_shift="yes", study_sd=0.5, study_inter_sd=0, scenario="1a"),
+        c(K=10, ns="same", cov_shift="yes", study_sd=0.5, study_inter_sd=0, scenario="1b"),
+        c(K=10, ns="one large", cov_shift="yes", study_sd=0.5, study_inter_sd=0, scenario="1b"),
+        c(K=10, ns="same", cov_shift="yes", study_sd=NA, study_inter_sd=NA, scenario="2"),
+        c(K=20, ns="same", cov_shift="no", study_sd=0.5, study_inter_sd=0, scenario="1a"),
+        c(K=20, ns="same", cov_shift="no", study_sd=1, study_inter_sd=0.5, scenario="1a"),
+        c(K=20, ns="same", cov_shift="no", study_sd=0.5, study_inter_sd=0, scenario="1b"),
+        c(K=20, ns="same", cov_shift="no", study_sd=1, study_inter_sd=0.5, scenario="1b"))
 
 settings <- do.call("rbind", replicate(1000, settings_ind, simplify = FALSE)) %>%
   cbind(iteration = rep(1:1000, each=11))
@@ -34,11 +44,10 @@ settings <- do.call("rbind", replicate(1000, settings_ind, simplify = FALSE)) %>
 i=as.numeric(Sys.getenv('SGE_TASK_ID'))
 
 iteration <- settings$iteration[i]
+study_mean <- 0
+study_inter_mean <- 0
 K <- settings$K[i]
-n_mean <- settings$n_mean[i]
-n_sd <- settings$n_sd[i]
-study_mean <- settings$study_mean[i]
-study_inter_mean <- settings$study_inter_mean[i]
+ns <- settings$ns[i]
 study_sd <- settings$study_sd[i]
 study_inter_sd <- settings$study_inter_sd[i]
 scenario <- settings$scenario[i]
