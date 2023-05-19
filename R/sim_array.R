@@ -48,24 +48,27 @@ study_mean <- 0
 study_inter_mean <- 0
 K <- settings$K[i]
 ns <- settings$ns[i]
+cov_shift <- settings$cov_shift[i]
 study_sd <- settings$study_sd[i]
 study_inter_sd <- settings$study_inter_sd[i]
 scenario <- settings$scenario[i]
-seed <- i + 100000
+seed <- i
 honesty <- F
 
 
 #now code
-source("Comparing_methods_functions.R", local=T)
-source("Simulation_MLOptions.R", local=T)
+source("R/Comparing_methods_functions.R", local=T)
+source("R/Simulation_MLOptions.R", local=T)
 
 set.seed(seed)
-sim_mses <- compare_mse(K, n_mean, n_sd, study_mean, study_inter_mean,
+sim_mses <- compare_mse(K, ns, cov_shift, study_mean, study_inter_mean,
                         study_sd, study_inter_sd, scenario, honesty)
-sim_output <- data.frame(sim_mses, seed=seed, K=K, n_mean=n_mean, n_sd=n_sd, study_sd=study_sd,
-                         study_inter_sd=study_inter_sd, scenario=scenario, honesty=honesty, iteration=iteration)
+sim_output <- data.frame(sim_mses, seed=seed, K=K, ns=ns, cov_shift=cov_shift,
+                         study_sd=study_sd, study_inter_sd=study_inter_sd, 
+                         scenario=scenario, honesty=honesty, iteration=iteration)
 
-save(sim_output, file=paste(paste("sim_output",seed,"nmean",n_mean,"nsd",n_sd,"studysd",study_sd,
-                                  "studyintersd",study_inter_sd,"scenario",scenario,"honesty",honesty,
+save(sim_output, file=paste(paste("sim_output",seed,"K",K,"ns",ns,"covshift",cov_shift,
+                                  "studysd",study_sd,"studyintersd",study_inter_sd,
+                                  "scenario",scenario,"honesty",honesty,
                                   "iter",iteration,sep="_"),".Rdata", sep=""))
 

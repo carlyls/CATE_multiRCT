@@ -10,19 +10,23 @@ library(grf)
 library(fastDummies)
 library(lme4)
 
-source("Comparing_methods_functions.R")
+source("R/Comparing_methods_functions.R")
 
 ## Data Generation Function
-## Tau based on Tan et al., 2021; Wager and Athey, 2018; Kunzel et al., 2019
+## Tau based on Tan et al., 2022; Wager and Athey, 2018; Kunzel et al., 2019
 
-gen_data <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
+gen_data <- function (K, ns, cov_shift, study_mean, study_inter_mean,
                       study_sd, study_inter_sd, scenario,
                       ncovar=5, sd=sqrt(0.01)) {
   
   all_dat <- data.frame()
   
-  n_study <- floor(rnorm(K, mean=n_mean, sd=n_sd))
+  #change size per trial
+  if (ns == "same") { n_study <- rep(500, K) }
+  if (ns == "one large") { n_study <- c(1000, rep(200, K-1)) }
+  if (ns == "half and half") { n_study <- c(rep(500, K/2), rep(200, K/2)) }
   
+  #study-specific coefficients
   if (scenario %in% c("1a","1b")) {
     study_main <- rnorm(K, mean=study_mean, sd=study_sd)
     study_inter <- rnorm(K, mean=study_inter_mean, sd=study_inter_sd)
@@ -33,8 +37,16 @@ gen_data <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
     n <- n_study[k]
     
     #sample covariates
-    dat <- data.frame(matrix(rnorm(n*ncovar), nrow=n, ncol=ncovar))
-    colnames(dat) <- paste0("X", seq(1,ncovar))
+    Sigma <- diag(1, ncovar)
+    Sigma[1,3] <- Sigma[3,1] <- .5 #add correlation between two covariates
+    
+    if (cov_shift == "no") { 
+      dat <- MASS::mvrnorm(n=n, mu=rep(0,ncovar), Sigma=Sigma) %>% data.frame()
+    }
+    if (cov_shift == "yes") {
+      if (k %% 2 == 0) { dat <- MASS::mvrnorm(n=n, mu=rep(0,ncovar), Sigma=Sigma) %>% data.frame() }
+      else { dat <- MASS::mvrnorm(n=n, mu=c(2,rep(0,ncovar-1)), Sigma=Sigma) %>% data.frame() }
+    }
     
     #treatment
     dat$W <- rbinom(n, size=1, prob=0.5)
@@ -80,11 +92,11 @@ gen_data <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
 
 
 ## Comparing Methods
-compare_mse <- function (K, n_mean, n_sd, study_mean, study_inter_mean,
+compare_mse <- function (K, ns, cov_shift, study_mean, study_inter_mean,
                          study_sd, study_inter_sd, scenario, honesty) {
   
   #generate data
-  sim_dat <- gen_data(K, n_mean, n_sd, study_mean, study_inter_mean,
+  sim_dat <- gen_data(K, ns, cov_shift, study_mean, study_inter_mean,
                       study_sd, study_inter_sd, scenario)
   
   covars <- grep("^X", names(sim_dat), value=TRUE)
