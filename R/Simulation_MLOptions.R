@@ -38,7 +38,7 @@ gen_data <- function (K, ns, cov_shift, study_mean, study_inter_mean,
     
     #sample covariates
     Sigma <- diag(1, ncovar)
-    Sigma[1,3] <- Sigma[3,1] <- .5 #add correlation between two covariates
+    Sigma[1,3] <- Sigma[3,1] <- .4 #add correlation between two covariates
     
     if (cov_shift == "no") { 
       dat <- MASS::mvrnorm(n=n, mu=rep(0,ncovar), Sigma=Sigma) %>% data.frame()

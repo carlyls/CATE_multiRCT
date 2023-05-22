@@ -160,5 +160,5 @@ tan_preds <- function(K, sim_dat, covars, method, honesty=F) {
   ss_pred <- aug_data[which(aug_data$S == aug_data$Model_Site),"tau_pred"]
   mse_ss <- mean((ss_pred - sim_dat$tau)^2)
   
-  return(c(mse_tree=mse_tree, mse_forest=mse_forest, mse_lasso=mse_lasso))
+  return(c(mse_tree=mse_tree, mse_forest=mse_forest, mse_lasso=mse_lasso, mse_ss=mse_ss))
 }
