@@ -14,7 +14,6 @@ source("R/Comparing_methods_functions.R")
 
 ## Data Generation Function
 ## Tau based on Tan et al., 2022; Wager and Athey, 2018; Kunzel et al., 2019
-
 gen_data <- function (K, ns, cov_shift, study_mean, study_inter_mean,
                       study_sd, study_inter_sd, scenario,
                       ncovar=5, sd=sqrt(0.01)) {
@@ -37,8 +36,8 @@ gen_data <- function (K, ns, cov_shift, study_mean, study_inter_mean,
     n <- n_study[k]
     
     #sample covariates
-    Sigma <- diag(1, ncovar)
-    Sigma[1,3] <- Sigma[3,1] <- .4 #add correlation between two covariates
+    Sigma <- matrix(.2, nrow=ncovar, ncol=ncovar)
+    diag(Sigma) <- 1
     
     if (cov_shift == "no") { 
       dat <- MASS::mvrnorm(n=n, mu=rep(0,ncovar), Sigma=Sigma) %>% data.frame()
