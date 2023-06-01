@@ -10,4 +10,8 @@ In the R folder:
 
 -   Simulation_MLOptions.R generates data for simulation based on a few different data generation setups, and it then performs each method on the simulated data and saves the MSEs for each method.
 
--   Finally, sim_array.R sets up the simulation for parallel computing in a high-performance computing cluster.
+-   Sim_Array.R sets up the simulation for parallel computing in a high-performance computing cluster.
+
+-   Sim_Combine_Results.Rmd reads in the simulation results and creates boxplot summaries of MSE.
+
+-   Modifier_Simulation.R generates a single simulated datasets and assesses the CATE estimates and potential moderation.

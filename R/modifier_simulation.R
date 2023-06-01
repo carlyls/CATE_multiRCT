@@ -14,7 +14,7 @@ source("R/Comparing_methods_functions.R", local=T)
 source("R/Simulation_MLOptions.R", local=T)
 
 #create a single simulated dataset according to scenario 1a
-sim_dat <- gen_data(K=10, n_mean=500, n_sd=0, study_mean=0, study_inter_mean=0,
+sim_dat <- gen_data(K=10, ns="same", cov_shift="no", study_mean=0, study_inter_mean=0,
                     study_sd=1, study_inter_sd=0.5, scenario="1a")
 
 covars <- grep("^X", names(sim_dat), value=TRUE)
