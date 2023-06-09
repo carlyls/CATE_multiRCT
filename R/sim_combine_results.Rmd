@@ -71,8 +71,9 @@ mses_long <- all %>%
                               grepl("ss",Method)==T ~ "No Pooling",
                               grepl("ma",Method)==T ~ "Meta-Analysis"),
          base = factor(base, levels=c("S-Learner", "X-Learner", "Causal Forest", "Meta-Analysis")), 
-         ensemble = factor(ensemble, levels=c("Complete Pooling", "Trial Indicator", "Ensemble Tree",
-                                              "Ensemble Forest","Ensemble Lasso", "Meta-Analysis", "No Pooling")),
+         ensemble = factor(ensemble, levels=c("Complete Pooling", "No Pooling", "Trial Indicator", 
+                                              "Ensemble Tree", "Ensemble Forest","Ensemble Lasso",
+                                              "Meta-Analysis")),
          sds = factor(paste(study_sd, study_inter_sd, sep=", ")),
          scenario = ifelse(scenario=="1a", "Piecewise Linear CATE",
                            ifelse(scenario=="1b", "Non-linear CATE",
@@ -118,8 +119,9 @@ all_long <- all %>%
                               grepl("ss",Method)==T ~ "No Pooling",
                               grepl("ma",Method)==T ~ "Meta-Analysis"),
          base = factor(base, levels=c("S-Learner", "X-Learner", "Causal Forest", "Meta-Analysis")), 
-         ensemble = factor(ensemble, levels=c("Complete Pooling", "Trial Indicator", "Ensemble Tree",
-                                              "Ensemble Forest","Ensemble Lasso", "Meta-Analysis", "No Pooling")),
+         ensemble = factor(ensemble, levels=c("Complete Pooling", "No Pooling", "Trial Indicator", 
+                                              "Ensemble Tree", "Ensemble Forest","Ensemble Lasso",
+                                              "Meta-Analysis")),
          sds = factor(paste(study_sd, study_inter_sd, sep=", ")),
          scenario = ifelse(scenario=="1a", "Piecewise Linear CATE",
                            ifelse(scenario=="1b", "Non-linear CATE",
@@ -165,6 +167,17 @@ Now consider when K=30.
 ```{r, fig.width=10, fig.height=6}
 all_long %>%
   filter(K==30) %>%
+  ggplot(aes(x=ensemble, y=MSE)) +
+  geom_boxplot(aes(color=base)) +
+  facet_wrap(~scenario) +
+  #scale_y_continuous(limits = c(0, 2.1)) +
+  labs(color="Single-Study Method") + xlab("Aggregation Method") +
+  ggtitle("K=30") +
+  theme(axis.text.x = element_text(angle=90),
+        text = element_text(size=12))
+
+all_long %>%
+  filter(K==15) %>%
   ggplot(aes(x=ensemble, y=MSE)) +
   geom_boxplot(aes(color=base)) +
   facet_wrap(~scenario) +
