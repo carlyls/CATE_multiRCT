@@ -39,8 +39,8 @@ settings_new <- expand.grid(K=c(10),
         c(K=10, ns="one large", cov_shift="yes", study_sd=1, study_inter_sd=0.5, scenario="1a"),
         c(K=10, ns="same", cov_shift="yes", study_sd=1, study_inter_sd=0.5, scenario="1b"),
         c(K=10, ns="one large", cov_shift="yes", study_sd=1, study_inter_sd=0.5, scenario="1b"),
-        c(K=30, ns="same", cov_shift="no", study_sd=1, study_inter_sd=0.5, scenario="1a"),
-        c(K=30, ns="same", cov_shift="no", study_sd=1, study_inter_sd=0.5, scenario="1b"))
+        c(K=30, ns="same", cov_shift="no", study_sd=0.5, study_inter_sd=0, scenario="1a"),
+        c(K=30, ns="same", cov_shift="no", study_sd=0.5, study_inter_sd=0, scenario="1b"))
 
 settings_combo <- settings_og %>%
   rbind(settings_new) %>%

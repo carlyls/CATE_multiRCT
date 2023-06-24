@@ -84,7 +84,8 @@ mses_long <- all %>%
 
 #scatterplot option
 mses_long %>%
-  filter(cov_shift == "no", ns=="same", K==10, scenario != "Variable CATE") %>%
+  filter(cov_shift == "no", ns=="same", K==10, 
+         scenario != "Variable CATE", ensemble != "No Pooling") %>%
   ggplot(aes(x=sds, y=MSE, group=Method, color=ensemble)) +
   geom_jitter(aes(shape=base), size=2.5, width=.2, height=0) +
   #geom_line() +
@@ -136,7 +137,8 @@ First let's look at our original setups.
 ```{r, fig.width=10, fig.height=7}
 #removing scenario 2 (variable CATE)
 all_long %>%
-  filter(cov_shift == "no", ns=="same", K==10, scenario != "Variable CATE") %>%
+  filter(cov_shift == "no", ns=="same", K==10, 
+         scenario != "Variable CATE", ensemble != "No Pooling") %>%
   ggplot(aes(x=ensemble, y=MSE)) +
   geom_boxplot(aes(color=base)) +
   facet_grid(sds~scenario, scales='free') +
@@ -144,6 +146,7 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
+#ggsave("boxplot_main_24Jun2023.jpeg", width=9, height=8)
 ```
 
 APPENDIX PLOTS BELOW.
@@ -160,30 +163,31 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
+#ggsave("boxplot_samplesize_24Jun2023.jpeg", width=9, height=6)
 ```
 
 Now consider when K=30.
 
 ```{r, fig.width=10, fig.height=6}
 all_long %>%
-  filter(K==30) %>%
+  filter(K==30, ensemble != "No Pooling") %>%
   ggplot(aes(x=ensemble, y=MSE)) +
   geom_boxplot(aes(color=base)) +
   facet_wrap(~scenario) +
   #scale_y_continuous(limits = c(0, 2.1)) +
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
-  ggtitle("K=30") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
+#ggsave("boxplot_k30_24Jun2023.jpeg", width=9, height=5)
 
 all_long %>%
-  filter(K==15) %>%
+  filter(K==15, ensemble != "No Pooling") %>%
   ggplot(aes(x=ensemble, y=MSE)) +
   geom_boxplot(aes(color=base)) +
   facet_wrap(~scenario) +
   #scale_y_continuous(limits = c(0, 2.1)) +
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
-  ggtitle("K=30") +
+  ggtitle("K=15") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
 ```
@@ -192,7 +196,7 @@ Now consider covariate shift.
 
 ```{r, fig.width=10, fig.height=7}
 all_long %>%
-  filter(cov_shift=="yes") %>%
+  filter(cov_shift=="yes", ensemble != "No Pooling") %>%
   ggplot(aes(x=ensemble, y=MSE)) +
   geom_boxplot(aes(color=base)) +
   facet_grid(ns~scenario) +
@@ -200,13 +204,14 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
+#ggsave("boxplot_covshift_24Jun2023.jpeg", width=9, height=6)
 ```
 
 Finally, consider scenario 2.
 
 ```{r, fig.width=10}
 all_long %>%
-  filter(scenario == "Variable CATE") %>%
+  filter(scenario == "Variable CATE", ensemble != "No Pooling") %>%
   ggplot(aes(x=ensemble, y=MSE)) +
   geom_boxplot(aes(color=base)) +
   facet_wrap(~ns) +
@@ -214,11 +219,41 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
+#ggsave("boxplot_sc2_24Jun2023.jpeg", width=11, height=5)
+```
+
+Now compare the no pooling approach to the best performers (causal forest with pooling with trial indicator and causal forest with ensemble forest).
+```{r}
+all_long %>%
+  filter(ensemble %in% c("No Pooling", "Trial Indicator", "Ensemble Forest"),
+         cov_shift == "no", ns=="same", K==10, 
+         scenario != "Variable CATE") %>%
+  ggplot(aes(x=ensemble, y=MSE)) +
+  geom_boxplot(aes(color=base)) +
+  facet_grid(sds~scenario, scales='free') +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(color="Single-Study Method") + xlab("Aggregation Method") +
+  theme(axis.text.x = element_text(angle=90),
+        text = element_text(size=12))
+#ggsave("boxplot_nopool_24Jun2023.jpeg", width=8, height=8)
+
+#causal forest only
+all_long %>%
+  filter(ensemble %in% c("No Pooling", "Trial Indicator", "Ensemble Forest"),
+         base == "Causal Forest", cov_shift == "no", ns=="same", K==10, 
+         scenario != "Variable CATE") %>%
+  ggplot(aes(x=ensemble, y=MSE)) +
+  geom_boxplot() +
+  facet_grid(sds~scenario, scales='free') +
+  #scale_y_continuous(limits = c(0, 1)) +
+  xlab("Aggregation Method") +
+  theme(axis.text.x = element_text(angle=90),
+        text = element_text(size=12))
 ```
 
 
 ```{r}
-#Figure 2
+#Average across ALL iterations and parameter setups
 mses_long %>%
   group_by(Method, ensemble, base) %>%
   summarise(MSE=mean(MSE)) %>%
