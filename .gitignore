@@ -1,12 +1,12 @@
-.Rhistory
+*.Rhistory*
 .Rproj.user
-.DS_Store
+*.DS_Store*
 .RData
 R/Testing_K*
-ML_CLS.Rproj
+*.Rproj
 Individual_vignettes
 Literature
-Old versions
+Old_versions
 Plots
 Presentations
 Papers
