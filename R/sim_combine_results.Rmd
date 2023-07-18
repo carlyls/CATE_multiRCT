@@ -270,16 +270,22 @@ mses_long %>%
 ```{r, eval=F}
 ## anova
 mod_params <- lm(MSE ~ factor(base) + factor(ensemble) + factor(study_sd) + 
-                   factor(study_inter_sd) + factor(scenario) +
+                   factor(study_inter_sd) + factor(scenario) + factor(ns) +
                    factor(base)*factor(ensemble), 
-                 data=filter(means_long, base != "Meta-Analysis", scenario != "Variable CATE"))
+                 data=filter(mses_long, base != "Meta-Analysis", 
+                             scenario != "Variable CATE",
+                             cov_shift == "no",
+                             K == 10))
 summary(mod_params)
 anova(mod_params)
 
 anov <- aov(MSE ~ factor(base) + factor(ensemble) + factor(study_sd) + 
                    factor(study_inter_sd) + factor(scenario) +
                    factor(base)*factor(ensemble), 
-                 data=filter(means_long, base != "Meta-Analysis", scenario != "Variable CATE"))
+                 data=filter(mses_long, base != "Meta-Analysis", 
+                             scenario != "Variable CATE",
+                             cov_shift == "no",
+                             K == 10))
 
 TukeyHSD(anov, 'factor(base)', conf.level=0.95)
 TukeyHSD(anov, 'factor(ensemble)', conf.level=0.95)
