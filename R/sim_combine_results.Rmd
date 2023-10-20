@@ -14,34 +14,30 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, message=F, warning=F}
 library(tidyverse)
 
-read_files <- function (dir) {
-  setwd(dir)
-  files <- list.files(pattern="_output_")
-  
-  mylist <- lapply(files, function(x) {
-    load(file = x)
-    get(ls()[ls()!= "filename"])
-  })
-  
-  all <- do.call("bind_rows", mylist)
-  return(all)
+files <- list.files("~/Desktop/Cluster/MLSims_Revisions/30JulResults")
+read_file <- function(file) {
+  load(file = file.path("~/Desktop/Cluster/MLSims_Revisions/30JulResults", file))
+  return(sim_output)
 }
 
 #load in files
-all <- read_files("~/Desktop/Cluster/MLSims_Revisions/23MayResults")
-
-nrow(all) #to make sure every iteration ran
-nrow(all %>% select(-iteration) %>% distinct()) 
-length(unique(all$seed)) #to make sure there are no duplicates
+all <- map_dfr(.x = files,
+               .f = read_file)
 
 #checking number of iterations
 table(all$scenario)
 
 all <- all %>%
+  mutate(sc_combo = paste(K, ns, cov_shift, study_sd, 
+                          study_inter_sd, scenario, sep="_")) %>%
+  filter(K != 15,
+         ! sc_combo %in% c("30_same_no_1_0.5_1a", "30_same_no_1_0.5_1b")) %>%
   mutate(scenario = factor(scenario, levels=c("1a","1b","2")),
-         sc_combo = paste(K, ns, cov_shift, study_sd, study_inter_sd, scenario, sep="_"),
          sc_combo = factor(sc_combo))
 
+nrow(all) #to make sure every iteration ran
+nrow(all %>% select(-iteration) %>% distinct()) 
+length(unique(all$seed)) #to make sure there are no duplicates
 table(all$sc_combo)
 ```
 
@@ -146,7 +142,7 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
-#ggsave("boxplot_main_24Jun2023.jpeg", width=9, height=8)
+ggsave("boxplot_main_30Jul2023.jpeg", width=9, height=8)
 ```
 
 APPENDIX PLOTS BELOW.
@@ -163,7 +159,7 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
-#ggsave("boxplot_samplesize_24Jun2023.jpeg", width=9, height=6)
+ggsave("boxplot_samplesize_30Jul2023.jpeg", width=9, height=6)
 ```
 
 Now consider when K=30.
@@ -178,18 +174,7 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
-#ggsave("boxplot_k30_24Jun2023.jpeg", width=9, height=5)
-
-all_long %>%
-  filter(K==15, ensemble != "No Pooling") %>%
-  ggplot(aes(x=ensemble, y=MSE)) +
-  geom_boxplot(aes(color=base)) +
-  facet_wrap(~scenario) +
-  #scale_y_continuous(limits = c(0, 2.1)) +
-  labs(color="Single-Study Method") + xlab("Aggregation Method") +
-  ggtitle("K=15") +
-  theme(axis.text.x = element_text(angle=90),
-        text = element_text(size=12))
+ggsave("boxplot_k30_30Jul2023.jpeg", width=9, height=5)
 ```
 
 Now consider covariate shift.
@@ -204,7 +189,7 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
-#ggsave("boxplot_covshift_24Jun2023.jpeg", width=9, height=6)
+ggsave("boxplot_covshift_30Jul2023.jpeg", width=9, height=6)
 ```
 
 Finally, consider scenario 2.
@@ -219,7 +204,7 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
-#ggsave("boxplot_sc2_24Jun2023.jpeg", width=11, height=5)
+ggsave("boxplot_sc2_30Jul2023.jpeg", width=11, height=5)
 ```
 
 Now compare the no pooling approach to the best performers (causal forest with pooling with trial indicator and causal forest with ensemble forest).
@@ -235,20 +220,20 @@ all_long %>%
   labs(color="Single-Study Method") + xlab("Aggregation Method") +
   theme(axis.text.x = element_text(angle=90),
         text = element_text(size=12))
-#ggsave("boxplot_nopool_24Jun2023.jpeg", width=8, height=8)
+ggsave("boxplot_nopool_30Jul2023.jpeg", width=8, height=8)
 
 #causal forest only
-all_long %>%
-  filter(ensemble %in% c("No Pooling", "Trial Indicator", "Ensemble Forest"),
-         base == "Causal Forest", cov_shift == "no", ns=="same", K==10, 
-         scenario != "Variable CATE") %>%
-  ggplot(aes(x=ensemble, y=MSE)) +
-  geom_boxplot() +
-  facet_grid(sds~scenario, scales='free') +
-  #scale_y_continuous(limits = c(0, 1)) +
-  xlab("Aggregation Method") +
-  theme(axis.text.x = element_text(angle=90),
-        text = element_text(size=12))
+# all_long %>%
+#   filter(ensemble %in% c("No Pooling", "Trial Indicator", "Ensemble Forest"),
+#          base == "Causal Forest", cov_shift == "no", ns=="same", K==10, 
+#          scenario != "Variable CATE") %>%
+#   ggplot(aes(x=ensemble, y=MSE)) +
+#   geom_boxplot() +
+#   facet_grid(sds~scenario, scales='free') +
+#   #scale_y_continuous(limits = c(0, 1)) +
+#   xlab("Aggregation Method") +
+#   theme(axis.text.x = element_text(angle=90),
+#         text = element_text(size=12))
 ```
 
 

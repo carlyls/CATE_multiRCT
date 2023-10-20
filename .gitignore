@@ -1,6 +1,6 @@
-.RHistory
+.Rhistory
 .Rproj.user/
-*.DS_Store*
+*.DS_Store
 .RData
 R/Testing_K*
 *.Rproj
